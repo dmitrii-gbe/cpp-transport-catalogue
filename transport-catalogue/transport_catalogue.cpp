@@ -2,12 +2,8 @@
 
 namespace transport_catalogue {
 
-void TransportCatalogue::AddBus(std::tuple<std::string, std::vector<std::string>, bool>&& bus){
-    std::vector<Stop*> stops;
-    for (const auto& stop : std::get<1>(bus)){
-        stops.push_back(stop_names_to_stop_.at(stop));
-    }
-    buses_.push_back({std::get<0>(bus), stops, std::get<2>(bus)});
+void TransportCatalogue::AddBus(const Bus& bus){
+    buses_.push_back(bus);
     bus_names_to_bus_.emplace(prev(buses_.end())->name, &(*prev(buses_.end())));
 }
 
@@ -16,7 +12,7 @@ void TransportCatalogue::AddStop(const Stop& stop){
     stop_names_to_stop_.emplace(prev(stops_.end())->name, &(*prev(stops_.end())));
 }
 
-Bus* TransportCatalogue::FindBus(const std::string& name) const {
+const Bus* TransportCatalogue::FindBus(const std::string& name) const {
     if (bus_names_to_bus_.count(name) == 0){
         return nullptr;
     } else {
@@ -39,21 +35,41 @@ std::optional<const std::set<std::string_view>> TransportCatalogue::GetBusesForS
     return result;
 }
 
-void TransportCatalogue::AddDistances(const std::vector<std::pair<std::string, int>>& v, const std::string& name){
-    for (const auto& entry : v){
-        const std::pair<Stop*, Stop*> ptr_pair = {stop_names_to_stop_.at(name), stop_names_to_stop_.at(entry.first)};
-        distances_.emplace(ptr_pair, entry.second);
+void TransportCatalogue::SetDistance(const std::string& stop_name_to, const std::string& stop_name_from, const int distance){
+        const std::pair<Stop*, Stop*> ptr_pair = {stop_names_to_stop_.at(stop_name_from), stop_names_to_stop_.at(stop_name_to)};
+        distances_.emplace(ptr_pair, distance);
+}
+
+int TransportCatalogue::GetDistance(Stop* const from, Stop* const to) const{
+    const std::pair<Stop*, Stop*> dir_pair = {from, to};
+    if (distances_.count(dir_pair) != 0){
+        return distances_.at(dir_pair);
+    }
+    else {
+        const std::pair<Stop*, Stop*> rev_pair = {to, from};
+        return distances_.at(rev_pair);
     }
 }
 
-int TransportCatalogue::GetDistances(const std::pair<Stop*, Stop*> stops_pair) const{
-    if (distances_.count(stops_pair) != 0){
-        return distances_.at(stops_pair);
+std::pair<double, double> TransportCatalogue::CalculateRouteLength(const Bus* bus) const{
+    double geo_route_length = 0.0;
+    double real_route_length = 0.0;
+    size_t n = bus->stops.size() - 1;
+    for (size_t i = 0; i + 1 != bus->stops.size(); ++i){
+        geo_route_length += ComputeDistance(bus->stops[i]->coordinates, bus->stops[i + 1]->coordinates);
+        if (!bus->is_circular){
+            real_route_length += GetDistance(bus->stops[i], bus->stops[i + 1]) + GetDistance(bus->stops[n], bus->stops[n - 1]);
+            --n;
+        }
+        else {
+            real_route_length += GetDistance(bus->stops[i], bus->stops[i + 1]);
+        }
     }
-    else {
-        const std::pair rev_pair = {stops_pair.second, stops_pair.first};
-        return distances_.at(rev_pair);
-    }
+    return {geo_route_length, real_route_length};
+}
+
+Stop* TransportCatalogue::GetStopPointer(const std::string& stop_name) const{
+    return stop_names_to_stop_.at(stop_name);
 }
 
     namespace detail {

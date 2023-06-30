@@ -9,8 +9,8 @@ namespace transport_catalogue {
         
 void ParseQueryToRespond(const TransportCatalogue& tc, std::vector<std::string>&& query);
 
-void BusOutput(const Bus* bus, const std::string& name, const TransportCatalogue& tc);
+void BusOutput(const std::string& name, const TransportCatalogue& tc, std::ostream& out);
 
-void StopOutput(std::optional<const std::set<std::string_view>> buses, const std::string& name);
+void StopOutput(const std::string& name, const TransportCatalogue& tc, std::ostream& out);
     }
 }

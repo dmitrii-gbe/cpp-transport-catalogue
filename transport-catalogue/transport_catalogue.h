@@ -8,15 +8,16 @@
 #include <vector>
 #include <string_view>
 
+#include "geo.h"
+
 namespace transport_catalogue {
 
 struct Stop {
-    Stop(std::string& name, double latitude, double longitude) : name(name), latitude(latitude), longitude(longitude)
+    Stop(std::string& name, const Coordinates& coordinates) : name(name), coordinates(coordinates)
 	{
 	}
     std::string name;
-    double latitude = 0.0;
-    double longitude = 0.0;
+    Coordinates coordinates;
 };  
     
 struct Bus {
@@ -39,17 +40,26 @@ class TransportCatalogue {
 
     public:
 
-    void AddBus(std::tuple<std::string, std::vector<std::string>, bool>&& bus);
+    void AddBus(const Bus& bus);
 
     void AddStop(const Stop& stop);
 
-    Bus* FindBus(const std::string& name) const;
+    const Bus* FindBus(const std::string& name) const;
+    /*
+    Вариант с константным указателем на Bus выдаёт ошибку компиляции в тренажёре "error: type qualifiers ignored on function return type [-Werror=ignored-qualifiers]"
+    Проблема, по-видимому, во флаге -pedantic, хотя g++ на Windows с параметрами -Wall -Werror -pedantic компилирует без проблем.
+    Тренажёр позволяет сделать константным только само значение
+    */
 
     std::optional<const std::set<std::string_view>> GetBusesForStop(const std::string& stop) const;
 
-    void AddDistances(const std::vector<std::pair<std::string, int>>& v, const std::string& name);
+    void SetDistance(const std::string& stop_name_to, const std::string& stop_name_from, const int distance);
 
-    int GetDistances(const std::pair<Stop*, Stop*> stops_pair) const;
+    int GetDistance(Stop* const from, Stop* const to) const;
+
+    std::pair<double, double> CalculateRouteLength(const Bus* bus) const;
+
+    Stop* GetStopPointer(const std::string& stop_name) const;
     
     private:    
         std::deque<Bus> buses_;

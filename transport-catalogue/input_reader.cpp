@@ -36,7 +36,9 @@ std::tuple<Stop, size_t> ParseStop(const std::string& s, const size_t name_posit
     size_t position_comma_lon = s.find_first_of(",", position_lon);
 	double longitude = std::stod(s.substr(position_lon, position_comma_lon - position_lon));
     size_t position_distance = s.find_first_not_of(", ", position_comma_lon);
-	return {{name, latitude, longitude}, position_distance};
+    const Coordinates coordinates = {latitude, longitude};
+    Stop stop = {name, coordinates};
+	return {stop, position_distance};
 }
 
 const std::vector<std::pair<std::string, int>> ParseDistances(const std::string& s, size_t position){
@@ -58,7 +60,7 @@ const std::vector<std::pair<std::string, int>> ParseDistances(const std::string&
     return v_distances;
 }
 
-std::tuple<std::string, std::vector<std::string>, bool> ParseBus(std::string&& s){
+const Bus ParseBus(std::string&& s, const TransportCatalogue& tc){
     size_t position = s.find_first_of(":");
     std::string name = s.substr(0, position);
     bool is_circular = false;
@@ -67,11 +69,11 @@ std::tuple<std::string, std::vector<std::string>, bool> ParseBus(std::string&& s
         is_circular = true;
     }
     size_t point = 0;
-    std::vector<std::string> stops;
+    std::vector<Stop*> stops;
     while (position != std::string::npos){
         point = s.find_first_not_of(">- :", position);
         size_t point_ws = s.find_first_of(">-", point);
-        stops.push_back(s.substr(point, point_ws - point - 1));
+        stops.push_back(tc.GetStopPointer(s.substr(point, point_ws - point - 1)));
         position = point_ws;
     }
     return {name, stops, is_circular};
@@ -91,12 +93,15 @@ void ParseQueryToAdd(TransportCatalogue& tc, std::vector<std::string>&& query){
             stop_strings.push_back({std::move(s), pair});
         }
         if (flag == "Bus"){
-            tc.AddBus(ParseBus(s.substr(++position)));
+            tc.AddBus(ParseBus(s.substr(++position), tc));
         }
     }
     for (const auto& entry : stop_strings){
-        auto pair = entry.second;
-        tc.AddDistances(ParseDistances(entry.first, pair.first), pair.second);        
+        auto pair = entry.second; //a pair of first character position of distance substring and stop name "from"
+        auto vector_of_distances = ParseDistances(entry.first, pair.first); //accept the orignal string and a position of the first character of distance substring; returns a vector of pairs containing a stop name "to" and a distance to this stop 
+        for (const auto& dist_to_stop : vector_of_distances){
+            tc.SetDistance(dist_to_stop.first, pair.second, dist_to_stop.second);  //accept stop name "to", stop name "from", and distance between them
+        }              
     }
 }
     }
