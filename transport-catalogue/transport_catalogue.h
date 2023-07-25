@@ -13,11 +13,11 @@
 namespace transport_catalogue {
 
 struct Stop {
-    Stop(std::string& name, const Coordinates& coordinates) : name(name), coordinates(coordinates)
+    Stop(std::string& name, const geo::Coordinates& coordinates) : name(name), coordinates(coordinates)
 	{
 	}
     std::string name;
-    Coordinates coordinates;
+    geo::Coordinates coordinates;
 };  
     
 struct Bus {
@@ -55,11 +55,13 @@ class TransportCatalogue {
 
     void SetDistance(const std::string& stop_name_to, const std::string& stop_name_from, const int distance);
 
-    int GetDistance(Stop* const from, Stop* const to) const;
+    double GetDistance(Stop* const from, Stop* const to) const;
 
     std::pair<double, double> CalculateRouteLength(const Bus* bus) const;
 
     Stop* GetStopPointer(const std::string& stop_name) const;
+
+    const std::unordered_map<std::string_view, Bus*>& GetAllBuses() const;
     
     private:    
         std::deque<Bus> buses_;

@@ -1,17 +1,28 @@
+#include "json.h"
 #include "transport_catalogue.h"
-#include "input_reader.h"
-#include "stat_reader.h"
+#include "request_handler.h"
+#include "map_renderer.h"
+#include "json_reader.h"
+#include <iostream>
+#include <iomanip>
 
 
+int main() {
 
-int main () {
-    std::vector<std::string> queries_to_add = transport_catalogue::input_reader::ReadQuery();
-    std::vector<std::string> queries_to_respond = transport_catalogue::input_reader::ReadQuery();
+    json::Document queries = GetQuery(std::cin);
 
+    renderer::RenderingSettings settings = GetRenderingSettings(queries);
+
+    renderer::MapRenderer mp(settings);
+  
     transport_catalogue::TransportCatalogue tc;
+    transport_catalogue::request_handler::RequestHandler rh(tc, mp);
+    rh.FillDB(queries);
+    rh.RespondToRequest(queries, std::cout);
+    //rh.RenderRoutesMap();
 
-    transport_catalogue::input_reader::ParseQueryToAdd(tc, std::move(queries_to_add));
-    transport_catalogue::response_output::ParseQueryToRespond(tc, std::move(queries_to_respond));
 
-    return 0;
+    //
+
+    return 0;    
 }

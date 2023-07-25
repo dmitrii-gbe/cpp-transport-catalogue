@@ -18,7 +18,7 @@ const std::vector<std::pair<std::string, int>> ParseDistances(const std::string&
 
 std::tuple<Stop, size_t> ParseStop(const std::string& s, const size_t name_position);
 
-const Bus ParseBus(std::string&& s);
+const Bus ParseBus(std::string&& s, const TransportCatalogue& tc);
 
 void ParseQueryToAdd(TransportCatalogue& tc, std::vector<std::string>&& query);
     }

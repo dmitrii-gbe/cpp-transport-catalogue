@@ -40,7 +40,7 @@ void TransportCatalogue::SetDistance(const std::string& stop_name_to, const std:
         distances_.emplace(ptr_pair, distance);
 }
 
-int TransportCatalogue::GetDistance(Stop* const from, Stop* const to) const{
+double TransportCatalogue::GetDistance(Stop* const from, Stop* const to) const{
     const std::pair<Stop*, Stop*> dir_pair = {from, to};
     if (distances_.count(dir_pair) != 0){
         return distances_.at(dir_pair);
@@ -70,6 +70,10 @@ std::pair<double, double> TransportCatalogue::CalculateRouteLength(const Bus* bu
 
 Stop* TransportCatalogue::GetStopPointer(const std::string& stop_name) const{
     return stop_names_to_stop_.at(stop_name);
+}
+
+const std::unordered_map<std::string_view, Bus*>& TransportCatalogue::GetAllBuses() const {
+    return bus_names_to_bus_;
 }
 
     namespace detail {
