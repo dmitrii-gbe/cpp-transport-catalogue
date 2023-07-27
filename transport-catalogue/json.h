@@ -15,6 +15,8 @@ class Node;
 // Сохраните объявления Dict и Array без изменения
 using Dict = std::map<std::string, Node>;
 using Array = std::vector<Node>;
+using Value = std::variant<std::nullptr_t, int, double, std::string, bool, Array, Dict>;
+
 
 // Эта ошибка должна выбрасываться при ошибках парсинга JSON
 class ParsingError : public std::runtime_error {
@@ -22,20 +24,22 @@ public:
     using runtime_error::runtime_error;
 };
 
-class Node {
+class Node : public Value {
 public:
-   /* Реализуйте Node, используя std::variant */
-    using Value = std::variant<std::nullptr_t, int, double, std::string, bool, Array, Dict>;
 
-    Node(Array array);
-    Node(Dict map);
-    Node(int value);
-    Node(double value);
-    Node(std::string value);
-    Node(std::variant<int, double> value);
-    Node(std::nullptr_t value);
-    Node() = default;
-    Node(bool value);
+
+   /* Реализуйте Node, используя std::variant */
+    //
+
+    // Node(Array array);
+    // Node(Dict map);
+    // Node(int value);
+    // Node(double value);
+    // Node(std::string value);
+    // Node(std::variant<int, double> value);
+    // Node(std::nullptr_t value);
+    // Node() = default;
+    // Node(bool value);
 
     bool IsInt() const;
     bool IsDouble() const; //Возвращает true, если в Node хранится int либо double.
@@ -53,13 +57,15 @@ public:
     const Array& AsArray() const;
     const Dict& AsMap() const;
 
-    const Value& GetValue() const;
+   // const Value& GetValue() const;
+
+    const Node& GetValue() const;
 
     bool operator==(const Node& other) const;
     bool operator!=(const Node& other) const;
 
 private:
-     Value value_;
+     //Value value_;
 };
 
 class Document {
@@ -114,7 +120,7 @@ template <typename K, typename V>
 void PrintValue(const std::map<K, V>& m, std::ostream& out) {
     bool x = true;
     for (const auto [key, value] : m){
-        if (x == true){
+        if (x){
             out << key << " ";
             PrintNode(value, out); 
             out << ";"sv;

@@ -1,11 +1,15 @@
 #include "json.h"
 #include <algorithm>
 
+
+
 using namespace std;
 
 namespace json {
 
 //namespace {
+
+
 
 Node LoadNode(std::istream& input);
 
@@ -26,7 +30,7 @@ Node LoadArray(std::istream& input) {
         result.push_back(LoadNode(input));
     }
 
-    return Node(move(result));
+    return Node{move(result)};
 }
 
 Node LoadDict(std::istream& input) {
@@ -49,7 +53,7 @@ Node LoadDict(std::istream& input) {
         result.insert({move(key), LoadNode(input)});
     }
 
-    return Node(move(result));
+    return Node{move(result)};
 }
 
 Node LoadNull(std::istream& input){
@@ -99,7 +103,7 @@ Node LoadNode(std::istream& input) {
     } else if (c == '{') {
         return LoadDict(input);
     } else if (c == '"') {
-        return Node(LoadString(input));
+        return Node{LoadString(input)};
         }
     else if (c == 'n'){
         input.putback(c);
@@ -110,52 +114,58 @@ Node LoadNode(std::istream& input) {
     }
     else {
         input.putback(c);
-        return Node(LoadNumber(input));
+        auto return_value = LoadNumber(input);
+        if (std::holds_alternative<int>(return_value)){
+            return Node{std::get<int>(return_value)};
+        }
+        else {
+            return Node{std::get<double>(return_value)};
+        }
     }
     throw ParsingError("Invalid_token"s);
 }
 
 //}  // namespace
 
-Node::Node(Array array)
-    : value_(move(array)) {
-}
+// Node::Node(Array array)
+//     : value_(move(array)) {
+// }
 
-Node::Node(std::nullptr_t value){
-    value_ = value;
-}
+// Node::Node(std::nullptr_t value){
+//     value_ = value;
+// }
 
-Node::Node(Dict map)
-    : value_(move(map)) {
-}
+// Node::Node(Dict map)
+//     : value_(move(map)) {
+// }
 
-Node::Node(int value)
-    : value_(value) {
-}
+// Node::Node(int value)
+//     : value_(value) {
+// }
 
-Node::Node(double value)
-    : value_(value){
-}
+// Node::Node(double value)
+//     : value_(value){
+// }
 
-Node::Node(bool value)
-    : value_(value){
+// Node::Node(bool value)
+//     : value_(value){
 
-}
+// }
 
-Node::Node(string value) : value_(std::move(value))
-{}
+// Node::Node(string value) : value_(std::move(value))
+// {}
 
-Node::Node(std::variant<int, double> value){
-    if (std::holds_alternative<int>(value)){
-        value_ = std::get<int>(value);
-    }
-    if (std::holds_alternative<double>(value)){
-        value_ = std::get<double>(value);
-    }
-}
+// Node::Node(std::variant<int, double> value){
+//     if (std::holds_alternative<int>(value)){
+//         value_ = std::get<int>(value);
+//     }
+//     if (std::holds_alternative<double>(value)){
+//         value_ = std::get<double>(value);
+//     }
+// }
 
 bool Node::IsInt() const {
-    if (std::holds_alternative<int>(value_)){
+    if (std::holds_alternative<int>(GetValue())){
         return true;
     }
     else {
@@ -164,7 +174,7 @@ bool Node::IsInt() const {
 }
 
 bool Node::IsDouble() const {
-    if (std::holds_alternative<double>(value_) || std::holds_alternative<int>(value_)){
+    if (std::holds_alternative<double>(GetValue()) || std::holds_alternative<int>(GetValue())){
         return true;
     }
     else {
@@ -173,7 +183,7 @@ bool Node::IsDouble() const {
 }
 
 bool Node::IsPureDouble() const {
-    if (std::holds_alternative<double>(value_)){
+    if (std::holds_alternative<double>(GetValue())){
         return true;
     }
     else {
@@ -182,7 +192,7 @@ bool Node::IsPureDouble() const {
 }
 
 bool Node::IsBool() const {
-    if (std::holds_alternative<bool>(value_)){
+    if (std::holds_alternative<bool>(GetValue())){
         return true;
     }
     else {
@@ -191,7 +201,7 @@ bool Node::IsBool() const {
 }
 
 bool Node::IsString() const {
-    if (std::holds_alternative<std::string>(value_)){
+    if (std::holds_alternative<std::string>(GetValue())){
         return true;
     }
     else {
@@ -200,7 +210,7 @@ bool Node::IsString() const {
 }
 
 bool Node::IsNull() const {
-    if (std::holds_alternative<std::nullptr_t>(value_)){
+    if (std::holds_alternative<std::nullptr_t>(GetValue())){
         return true;
     }
     else {
@@ -209,7 +219,7 @@ bool Node::IsNull() const {
 }
 
 bool Node::IsArray() const {
-    if (std::holds_alternative<Array>(value_)){
+    if (std::holds_alternative<Array>(GetValue())){
         return true;
     }
     else {
@@ -218,7 +228,7 @@ bool Node::IsArray() const {
 }
 
 bool Node::IsMap() const {
-    if (std::holds_alternative<Dict>(value_)){
+    if (std::holds_alternative<Dict>(GetValue())){
         return true;
     }
     else {
@@ -228,7 +238,7 @@ bool Node::IsMap() const {
 
 int Node::AsInt() const {
     if (IsInt()){
-        return std::get<int>(value_);
+        return std::get<int>(GetValue());
     }
     else {
         throw std::logic_error("invalid_data_type");
@@ -237,7 +247,7 @@ int Node::AsInt() const {
 
 bool Node::AsBool() const {
     if (IsBool()){
-        return std::get<bool>(value_);
+        return std::get<bool>(GetValue());
     }
     else {
         throw std::logic_error("invalid_data_type");
@@ -245,11 +255,11 @@ bool Node::AsBool() const {
 }
 
 double Node::AsDouble() const {
-    if (std::holds_alternative<int>(value_)){
-        return static_cast<double>(std::get<int>(value_));
+    if (std::holds_alternative<int>(GetValue())){
+        return static_cast<double>(std::get<int>(GetValue()));
     }
-    else if (std::holds_alternative<double>(value_)){
-        return std::get<double>(value_);
+    else if (std::holds_alternative<double>(GetValue())){
+        return std::get<double>(GetValue());
     }
     else {
         throw std::logic_error("invalid_data_type");
@@ -258,7 +268,7 @@ double Node::AsDouble() const {
 
 const std::string& Node::AsString() const {
     if (IsString()){
-        return std::get<std::string>(value_);
+        return std::get<std::string>(GetValue());
     }
     else {
         throw std::logic_error("invalid_data_type");
@@ -267,7 +277,7 @@ const std::string& Node::AsString() const {
 
 const Array& Node::AsArray() const {
     if (IsArray()){
-        return std::get<Array>(value_);
+        return std::get<Array>(GetValue());
     }
     else {
         throw std::logic_error("invalid_data_type");
@@ -276,19 +286,24 @@ const Array& Node::AsArray() const {
 
 const Dict& Node::AsMap() const {
     if (IsMap()){
-        return std::get<Dict>(value_);
+        return std::get<Dict>(GetValue());
     }
     else {
         throw std::logic_error("invalid_data_type");
     }
 }
 
-const Node::Value& Node::GetValue() const {
-    return value_;
+// const Node::Value& Node::GetValue() const {
+//     return value_;
+// }
+
+const Node& Node::GetValue() const {
+    return *this;
 }
 
-Document::Document(Node root)
-    : root_(move(root)) {
+Document::Document(Node root) : root_(std::move(root))
+{
+   // root_ = root;
 }
 
 const Node& Document::GetRoot() const {
@@ -402,7 +417,7 @@ void PrintValue(const Dict& dict, std::ostream& out){
 void PrintNode(const Node& node, std::ostream& out) {
     std::visit(
         [&out](const auto& value){ PrintValue(value, out); },
-        node.GetValue());
+        static_cast<Value>(node));
 }
 
 bool Node::operator==(const Node& other) const {

@@ -36,7 +36,7 @@ std::tuple<Stop, size_t> ParseStop(const std::string& s, const size_t name_posit
     size_t position_comma_lon = s.find_first_of(",", position_lon);
 	double longitude = std::stod(s.substr(position_lon, position_comma_lon - position_lon));
     size_t position_distance = s.find_first_not_of(", ", position_comma_lon);
-    const Coordinates coordinates = {latitude, longitude};
+    const geo::Coordinates coordinates = {latitude, longitude};
     Stop stop = {name, coordinates};
 	return {stop, position_distance};
 }

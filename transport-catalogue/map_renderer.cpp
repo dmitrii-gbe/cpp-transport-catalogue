@@ -4,6 +4,38 @@
 
 namespace renderer {
 
+bool PairComparator(const std::pair<std::string, svg::Point>& left, const std::pair<std::string, svg::Point>& right){
+     return left.first < right.first;
+}
+
+svg::Text CreateText(const std::string& name, const RenderingSettings& settings_, const svg::Point point, int i){
+    svg::Text result;
+    result.SetData(name)
+        .SetPosition(point)
+        .SetOffset({settings_.bus_label_offset.dx, settings_.bus_label_offset.dy})
+        .SetFontSize(settings_.bus_label_font_size)
+        .SetFontFamily("Verdana")
+        .SetFontWeight("bold")
+        .SetFillColor(settings_.color_palette[i]);
+        return result;
+}
+
+svg::Text CreateUnderLayerText(const std::string& name, const RenderingSettings& settings_, const svg::Point point){
+    svg::Text result;
+    result.SetData(name)
+        .SetPosition(point)
+        .SetOffset({settings_.bus_label_offset.dx, settings_.bus_label_offset.dy})
+        .SetFontSize(settings_.bus_label_font_size)
+        .SetFontFamily("Verdana")
+        .SetFontWeight("bold")
+        .SetFillColor(settings_.underlayer_color)
+        .SetStrokeColor(settings_.underlayer_color)
+        .SetStrokeWidth(settings_.underlayer_width)
+        .SetStrokeLineCap(svg::StrokeLineCap::ROUND)
+        .SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
+        return result;
+}
+
 std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>> MapRenderer::TranformCoordinates(const std::unordered_map<std::string_view, transport_catalogue::Bus*>& routes) const{
     std::vector<geo::Coordinates> merged_coordinates;
     for (const auto& [name, bus] : routes){
@@ -37,38 +69,23 @@ std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Po
 
     return result;
 }
-svg::Text CreateText(const std::string& name, const RenderingSettings& settings_, const svg::Point point, int i){
-    svg::Text result;
-    result.SetData(name)
-        .SetPosition(point)
-        .SetOffset({settings_.bus_label_offset.dx, settings_.bus_label_offset.dy})
-        .SetFontSize(settings_.bus_label_font_size)
-        .SetFontFamily("Verdana")
-        .SetFontWeight("bold")
-        .SetFillColor(settings_.color_palette[i]);
-        return result;
-}
-
-svg::Text CreateUnderLayerText(const std::string& name, const RenderingSettings& settings_, const svg::Point point){
-    svg::Text result;
-    result.SetData(name)
-        .SetPosition(point)
-        .SetOffset({settings_.bus_label_offset.dx, settings_.bus_label_offset.dy})
-        .SetFontSize(settings_.bus_label_font_size)
-        .SetFontFamily("Verdana")
-        .SetFontWeight("bold")
-        .SetFillColor(settings_.underlayer_color)
-        .SetStrokeColor(settings_.underlayer_color)
-        .SetStrokeWidth(settings_.underlayer_width)
-        .SetStrokeLineCap(svg::StrokeLineCap::ROUND)
-        .SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
-        return result;
-}
 
 svg::Document MapRenderer::RenderRoutes(const std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>>& routes) const {
     svg::Document document;
+
     size_t i = 0;
-    for (const auto& [bus, route] : routes){
+    RenderLines(document, routes, i);
+
+    i = 0;
+    RenderBusNames(document, routes, i);
+
+    RenderStopNames(document, routes);
+
+    return document;
+}
+
+void MapRenderer::RenderLines(svg::Document& document, const std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>>& routes, size_t& i) const {
+        for (const auto& [bus, route] : routes){
         std::vector<std::pair<std::string, svg::Point>> stops = std::get<std::vector<std::pair<std::string, svg::Point>>>(route);
         svg::Polyline line;
         for (const auto& point : stops){
@@ -88,8 +105,11 @@ svg::Document MapRenderer::RenderRoutes(const std::map<std::string_view, std::tu
             ++i;
         }
     }
-    i = 0;
-    for (const auto& [bus, route] : routes){
+}
+
+
+void MapRenderer::RenderBusNames(svg::Document& document, const std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>>& routes, size_t& i) const {
+        for (const auto& [bus, route] : routes){
         std::vector<std::pair<std::string, svg::Point>> stops = std::get<std::vector<std::pair<std::string, svg::Point>>>(route);
         if (std::get<bool>(route) == true){
             svg::Text name = CreateText(static_cast<std::string>(bus), settings_, stops[0].second, i);
@@ -116,14 +136,16 @@ svg::Document MapRenderer::RenderRoutes(const std::map<std::string_view, std::tu
             ++i;
         }
     }
+}
 
+void MapRenderer::RenderStopNames(svg::Document& document, const std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>>& routes) const {
     std::vector<std::pair<std::string, svg::Point>> joined_stops;
     for (const auto& [bus, route] : routes){
         std::vector<std::pair<std::string, svg::Point>> r = std::get<0>(route);
         std::copy(r.begin(), r.end(), std::back_inserter(joined_stops));
     }
-   auto comparator = [](const std::pair<std::string, svg::Point>& left, const std::pair<std::string, svg::Point>& right){ return left.first < right.first; };
-    std::set<std::pair<std::string, svg::Point>, decltype(comparator)> joined_stops_set(comparator);
+  
+    std::set<std::pair<std::string, svg::Point>, decltype(&PairComparator)> joined_stops_set(&PairComparator);
     for (auto it = joined_stops.begin(); it != joined_stops.end(); ++it){
         joined_stops_set.insert(*it);
     }
@@ -159,8 +181,6 @@ svg::Document MapRenderer::RenderRoutes(const std::map<std::string_view, std::tu
         document.Add(undername);
         document.Add(name);
     }
-    
-    return document;
 }
 
 }

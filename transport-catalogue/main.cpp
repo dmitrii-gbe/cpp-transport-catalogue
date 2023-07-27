@@ -9,20 +9,19 @@
 
 int main() {
 
-    json::Document queries = GetQuery(std::cin);
+    json::Document queries = json_reader::GetQuery(std::cin);
 
-    renderer::RenderingSettings settings = GetRenderingSettings(queries);
+    renderer::RenderingSettings settings = json_reader::GetRenderingSettings(queries);
 
     renderer::MapRenderer mp(settings);
   
     transport_catalogue::TransportCatalogue tc;
+
     transport_catalogue::request_handler::RequestHandler rh(tc, mp);
+
     rh.FillDB(queries);
+    
     rh.RespondToRequest(queries, std::cout);
-    //rh.RenderRoutesMap();
-
-
-    //
 
     return 0;    
 }

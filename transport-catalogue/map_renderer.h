@@ -118,6 +118,10 @@ svg::Document RenderRoutes(const std::map<std::string_view, std::tuple<std::vect
 
 private:
 
+void RenderLines(svg::Document& document, const std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>>& routes, size_t& i) const;
+void RenderBusNames(svg::Document& document, const std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>>& routes, size_t& i) const;
+void RenderStopNames(svg::Document& document, const std::map<std::string_view, std::tuple<std::vector<std::pair<std::string, svg::Point>>, bool>>& routes) const;
+
 RenderingSettings settings_;
 
 };
