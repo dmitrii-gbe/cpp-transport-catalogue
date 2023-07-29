@@ -122,7 +122,7 @@ void RenderRoutesMap(std::ostream& out, const renderer::MapRenderer& renderer, c
 }
 
 
-json::Node MapOutPut(const int request_id, const renderer::MapRenderer& renderer, const transport_catalogue::TransportCatalogue& tc) {
+json::Node GetMapOutput(const int request_id, const renderer::MapRenderer& renderer, const transport_catalogue::TransportCatalogue& tc) {
     std::ostringstream ss;
     RenderRoutesMap(ss, renderer, tc);
     std::string map = ss.str();
@@ -133,7 +133,7 @@ json::Node MapOutPut(const int request_id, const renderer::MapRenderer& renderer
     return result;
 }
 
-json::Node BusOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc) {
+json::Node GetBusOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc) {
     json::Dict request_id;
     json::Dict result;
     result["request_id"] = json::Node{id};
@@ -159,7 +159,7 @@ json::Node BusOutput(const std::string& name, int id, const transport_catalogue:
     return json::Node{result};
 }
 
-json::Node StopOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc) {
+json::Node GetStopOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc) {
     json::Dict request_id;
     json::Dict result;
     result["request_id"] = json::Node{id};
@@ -179,6 +179,26 @@ json::Node StopOutput(const std::string& name, int id, const transport_catalogue
         result["buses"] = array;
     }
     return json::Node{result};
+}
+
+void RespondToRequest(const json::Document& doc, std::ostream& out, const renderer::MapRenderer& renderer_, const transport_catalogue::TransportCatalogue& tc_){
+    json::Array queries_to_respond = doc.GetRoot().AsMap().at("stat_requests").AsArray();
+    std::vector<json::Node> result;
+    for (const auto& item : queries_to_respond){
+        const auto resp_map = item.AsMap();
+        if (resp_map.at("type").AsString() == "Stop"){
+            result.push_back(json_reader::GetStopOutput(resp_map.at("name").AsString(), resp_map.at("id").AsInt(), tc_));
+        }
+        if (resp_map.at("type").AsString() == "Bus"){
+            result.push_back(json_reader::GetBusOutput(resp_map.at("name").AsString(), resp_map.at("id").AsInt(), tc_));
+        }
+        if (resp_map.at("type").AsString() == "Map"){
+            result.push_back(json_reader::GetMapOutput(resp_map.at("id").AsInt(), renderer_, tc_));
+        }
+    }
+    json::Node return_value{result};
+    json::Document d(return_value);
+    json::Print(d, out);
 }
 
 }

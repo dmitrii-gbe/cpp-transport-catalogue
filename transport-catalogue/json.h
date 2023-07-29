@@ -27,19 +27,7 @@ public:
 class Node : public Value {
 public:
 
-
-   /* Реализуйте Node, используя std::variant */
-    //
-
-    // Node(Array array);
-    // Node(Dict map);
-    // Node(int value);
-    // Node(double value);
-    // Node(std::string value);
-    // Node(std::variant<int, double> value);
-    // Node(std::nullptr_t value);
-    // Node() = default;
-    // Node(bool value);
+using std::variant<std::nullptr_t, int, double, std::string, bool, Array, Dict>::variant;
 
     bool IsInt() const;
     bool IsDouble() const; //Возвращает true, если в Node хранится int либо double.

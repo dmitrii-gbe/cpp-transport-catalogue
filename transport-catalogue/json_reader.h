@@ -18,12 +18,14 @@ void SetDistances(const json::Array& queries_to_add, transport_catalogue::Transp
 
 void FillDB(const json::Document& doc, transport_catalogue::TransportCatalogue& tc);
 
-json::Node BusOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc);
-json::Node StopOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc);
+json::Node GetBusOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc);
+json::Node GetStopOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc);
 
 void RenderRoutesMap(std::ostream& out, const renderer::MapRenderer& renderer, const transport_catalogue::TransportCatalogue& tc);
 
-json::Node MapOutPut(const int request_id, const renderer::MapRenderer& renderer, const transport_catalogue::TransportCatalogue& tc);
+json::Node GetMapOutput(const int request_id, const renderer::MapRenderer& renderer, const transport_catalogue::TransportCatalogue& tc);
+
+void RespondToRequest(const json::Document& doc, std::ostream& out, const renderer::MapRenderer& renderer_, const transport_catalogue::TransportCatalogue& tc_);
 
 }
 /*
