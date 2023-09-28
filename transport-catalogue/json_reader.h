@@ -4,6 +4,7 @@
 #include "map_renderer.h"
 #include "request_handler.h"
 #include "transport_catalogue.h"
+#include "json_builder.h"
 
 namespace json_reader {
 json::Document GetQuery(std::istream& input);

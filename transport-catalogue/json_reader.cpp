@@ -126,22 +126,15 @@ json::Node GetMapOutput(const int request_id, const renderer::MapRenderer& rende
     std::ostringstream ss;
     RenderRoutesMap(ss, renderer, tc);
     std::string map = ss.str();
-    json::Dict dict;
-    dict["map"] = json::Node{map};
-    dict["request_id"] = json::Node{request_id};
-    json::Node result{dict};
-    return result;
+    return json::Builder{}.StartDict().Key("map").Value(map).Key("request_id").Value(request_id).EndDict().Build();
 }
 
 json::Node GetBusOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc) {
-    json::Dict request_id;
     json::Dict result;
-    result["request_id"] = json::Node{id};
+    result["request_id"] = json::Builder{}.Value(id).Build();
     const transport_catalogue::Bus* bus = tc.FindBus(name);
     if (bus == nullptr){
-        std::string s = "not found";
-        json::Node err_string{s};
-        result["error_message"] = err_string;
+        result["error_message"] = json::Builder{}.Value("not found").Build();
     }
     else {
         auto geo_and_real_route_lengths = tc.CalculateRouteLength(bus);
@@ -151,34 +144,30 @@ json::Node GetBusOutput(const std::string& name, int id, const transport_catalog
         int stop_count = (bus->is_circular == true ? bus->stops.size() : bus->stops.size() * 2 - 1);
         int u_stop_count = unique_elements.size();
         double curvature = ((bus->is_circular == true ? real_route_length / geo_route_length : real_route_length / geo_route_length / 2.0));
-        result["curvature"] = json::Node{curvature};
-        result["route_length"] = json::Node{real_route_length};
-        result["stop_count"] = json::Node{stop_count};
-        result["unique_stop_count"] = json::Node{u_stop_count};
+        result["curvature"] = json::Builder{}.Value(curvature).Build();
+        result["route_length"] = json::Builder{}.Value(real_route_length).Build();
+        result["stop_count"] = json::Builder{}.Value(stop_count).Build();
+        result["unique_stop_count"] = json::Builder{}.Value(u_stop_count).Build();
     }
-    return json::Node{result};
+    return json::Builder{}.Value(result).Build();
 }
 
 json::Node GetStopOutput(const std::string& name, int id, const transport_catalogue::TransportCatalogue& tc) {
-    json::Dict request_id;
     json::Dict result;
-    result["request_id"] = json::Node{id};
+    result["request_id"] = json::Builder{}.Value(id).Build();
     std::vector<json::Node> array_of_buses;
     auto buses = tc.GetBusesForStop(name);
     if (!buses.has_value()){
-        std::string s = "not found";
-        json::Node err_string{s};
-        result["error_message"] = err_string;
+        result["error_message"] = json::Builder{}.Value("not found").Build();
     }
     else {
         for (const auto& bus : buses.value()){
             json::Node bus_name{static_cast<std::string>(bus)};
             array_of_buses.push_back(bus_name);
         }
-        json::Node array{array_of_buses};
-        result["buses"] = array;
+        result["buses"] = json::Builder{}.Value(array_of_buses).Build();
     }
-    return json::Node{result};
+    return json::Builder{}.Value(result).Build();
 }
 
 void RespondToRequest(const json::Document& doc, std::ostream& out, const renderer::MapRenderer& renderer_, const transport_catalogue::TransportCatalogue& tc_){
@@ -196,14 +185,7 @@ void RespondToRequest(const json::Document& doc, std::ostream& out, const render
             result.push_back(json_reader::GetMapOutput(resp_map.at("id").AsInt(), renderer_, tc_));
         }
     }
-    json::Node return_value{result};
-    json::Document d(return_value);
-    json::Print(d, out);
+    json::Print(json::Document(json::Builder{}.Value(result).Build()), out);
 }
 
 }
-
-/*
- * Здесь можно разместить код наполнения транспортного справочника данными из JSON,
- * а также код обработки запросов к базе и формирование массива ответов в формате JSON
- */
