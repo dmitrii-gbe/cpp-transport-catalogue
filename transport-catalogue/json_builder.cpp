@@ -20,8 +20,6 @@ using namespace json;
                     throw std::logic_error("Invalid_Value_Builder::Method_Invocation");
                 }
                 if (queue_.back() == Builder::Method::Key){
-                    // tmp_dict_.back()[tmp_key_.back()] = value;
-                    // tmp_key_.pop_back();
                     tmp_.push_back(value);
                     queue_.push_back(Builder::Method::Value);
                 }
