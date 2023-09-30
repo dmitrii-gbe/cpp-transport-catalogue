@@ -10,8 +10,6 @@ namespace json {
     class StartArrayItemContext;
     class StartDictItemContext;
     class KeyItemContext;
-    class ValueItemContext;
-    class ValueItemContext1;
     
     class Builder {
     
@@ -30,7 +28,7 @@ namespace json {
 
             Builder& Value(Node value);
 
-            KeyItemContext Key(std::string str);
+            Builder& Key(std::string str);
 
             StartDictItemContext StartDict();
 
@@ -49,10 +47,8 @@ namespace json {
             bool CheckIfElementIsInsideOfArray();
 
             json::Node root_;
-            std::vector<std::string> tmp_key_;
             std::vector<Method> queue_;
-            std::vector<Dict> tmp_dict_;
-            std::vector<Array> tmp_array_;
+            Array tmp_;
     };
 
     class BaseClass {
@@ -91,7 +87,7 @@ namespace json {
 
             public:
 
-            ValueItemContext Value(Node value);
+            StartDictItemContext Value(Node value);
 
     };
 
@@ -121,40 +117,7 @@ namespace json {
 
             public:
 
-            ValueItemContext1 Value(Node value);
+            StartArrayItemContext Value(Node value);
 
-    };
-
-    
-
-    class ValueItemContext : public BaseClass {
-
-            using BaseClass::BaseClass;
-
-            StartDictItemContext StartDict() = delete;      
-
-            StartArrayItemContext StartArray() = delete;                
-
-            Builder& EndArray() = delete;           
-
-            json::Node Build() = delete;
-
-    };
-
-    class ValueItemContext1 : public BaseClass {
-
-        using BaseClass::BaseClass;
-
-        Builder& EndDict() = delete;
-
-        KeyItemContext Key() = delete;
-
-        json::Node Build() = delete;
-
-        public:
-
-        ValueItemContext1 Value(Node value);
-
-    };
-    
+    };    
 }

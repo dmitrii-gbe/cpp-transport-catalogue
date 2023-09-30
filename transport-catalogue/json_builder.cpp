@@ -20,12 +20,13 @@ using namespace json;
                     throw std::logic_error("Invalid_Value_Builder::Method_Invocation");
                 }
                 if (queue_.back() == Builder::Method::Key){
-                    tmp_dict_.back()[tmp_key_.back()] = value;
-                    tmp_key_.pop_back();
+                    // tmp_dict_.back()[tmp_key_.back()] = value;
+                    // tmp_key_.pop_back();
+                    tmp_.push_back(value);
                     queue_.push_back(Builder::Method::Value);
                 }
                 else if (queue_.back() == Builder::Method::StartArray || (queue_.back() == Builder::Method::Value && CheckIfElementIsInsideOfArray()) || ((queue_.back() == Builder::Method::EndDict || queue_.back() == Builder::Method::EndArray) && CheckIfElementIsInsideOfArray())){
-                    tmp_array_.back().push_back(value);
+                    tmp_.push_back(value);
                     queue_.push_back(Builder::Method::Value);
                 }
                 else if (queue_.back() == Builder::Method::Start) {
@@ -38,11 +39,11 @@ using namespace json;
                 return *this;
             }
 
-            KeyItemContext Builder::Key(std::string str){
+            Builder& Builder::Key(std::string str){
                 if (queue_.back() == Builder::Method::StartDict || queue_.back() == Builder::Method::Value || ((queue_.back() == Builder::Method::EndDict || queue_.back() == Builder::Method::EndArray) && CheckIfKeyIsInsideOfDict())){
-                    tmp_key_.push_back(str);
+                    tmp_.push_back(str);
                     queue_.push_back(Builder::Method::Key);
-                    return KeyItemContext(*this);
+                    return *this;
                 }
                 else {
                     throw std::logic_error("Invalid_Key_Builder::Method_Invocation");
@@ -59,7 +60,7 @@ using namespace json;
                 }
                 if ((queue_.back() == Builder::Method::Value && CheckIfElementIsInsideOfArray()) || queue_.back() == Builder::Method::Key || queue_.back() == Builder::Method::Start || queue_.back() == Builder::Method::StartArray || ((queue_.back() == Builder::Method::EndDict || queue_.back() == Builder::Method::EndArray) && CheckIfElementIsInsideOfArray())){
                     Dict dict{};
-                    tmp_dict_.push_back(dict);
+                    tmp_.push_back(dict);
                     queue_.push_back(Builder::Method::StartDict);
                     return StartDictItemContext(*this);
                 }
@@ -84,32 +85,24 @@ using namespace json;
                     }
                 }
                 queue_.pop_back();
-                if (queue_.back() == Builder::Method::Key || queue_.back() == Builder::Method::StartDict){
-                    tmp_dict_[tmp_dict_.size() - 2][tmp_key_.back()] = tmp_dict_.back();
-                    tmp_key_.pop_back();
-                    queue_.push_back(Builder::Method::EndDict);
+                Dict dict{};
+                while (!tmp_.back().IsMap()){
+                    Node value = tmp_.back();
+                    tmp_.pop_back();
+                    dict[tmp_.back().AsString()] = value;
+                    tmp_.pop_back();
                 }
-                else if (queue_.back() == Builder::Method::Value || queue_.back() == Builder::Method::EndDict){
-                    tmp_array_.back().push_back(tmp_dict_.back());
+                tmp_.back() = dict;
+                if (queue_.back() == Builder::Method::Key || queue_.back() == Builder::Method::StartDict || queue_.back() == Builder::Method::Value || queue_.back() == Builder::Method::EndDict || queue_.back() == Builder::Method::EndArray || queue_.back() == Builder::Method::StartArray){
                     queue_.push_back(Builder::Method::EndDict);
-                }
-                else if (queue_.back() == Builder::Method::EndArray){
-                    tmp_dict_.back()[tmp_key_.back()] = tmp_array_.back();
-                    tmp_key_.pop_back();
-                    queue_.push_back(Builder::Method::EndDict); 
                 }
                 else if (queue_.back() == Builder::Method::Start){
-                    root_ = tmp_dict_.back();
+                    root_ = tmp_.back();
                     queue_.pop_back();
-                }
-                else if (queue_.back() == Builder::Method::StartArray){
-                    tmp_array_.back().push_back(tmp_dict_.back());
-                    queue_.push_back(Builder::Method::EndDict); //
                 }
                 else {
                     throw std::logic_error("Invalid_EndDict_Builder::Method_Invocation");
                 }    
-                tmp_dict_.pop_back();
                 return *this;
             }
 
@@ -119,7 +112,7 @@ using namespace json;
                 }
                 if ((queue_.back() == Builder::Method::Value && CheckIfElementIsInsideOfArray()) || queue_.back() == Builder::Method::Key || queue_.back() == Builder::Method::Start || queue_.back() == Builder::Method::StartArray || ((queue_.back() == Builder::Method::EndDict || queue_.back() == Builder::Method::EndArray) && CheckIfElementIsInsideOfArray())){
                     Array array{};
-                    tmp_array_.push_back(array);
+                    tmp_.push_back(array);
                     queue_.push_back(Builder::Method::StartArray);
                     return StartArrayItemContext(*this);
                 }
@@ -144,19 +137,18 @@ using namespace json;
                     }
                 }
                 queue_.pop_back();
-                if (queue_.back() == Builder::Method::Value || queue_.back() == Builder::Method::StartArray){
-                    tmp_array_[tmp_array_.size() - 2].push_back(tmp_array_.back());
-                    tmp_array_.pop_back();
-                    queue_.push_back(Builder::Method::EndArray);
+                Array array{};
+                while (!tmp_.back().IsArray()){
+                    array.push_back(tmp_.back());
+                    tmp_.pop_back();
                 }
-                else if (queue_.back() == Builder::Method::Key){
-                    tmp_dict_.back()[tmp_key_.back()] = tmp_array_.back();
-                    tmp_key_.pop_back();
-                    tmp_array_.pop_back();
+                Array rev{array.rbegin(), array.rend()};
+                tmp_.back() = rev;
+                if (queue_.back() == Builder::Method::Value || queue_.back() == Builder::Method::StartArray || queue_.back() == Builder::Method::Key){
                     queue_.push_back(Builder::Method::EndArray);
                 }
                 else if (queue_.back() == Builder::Method::Start){
-                    root_ = tmp_array_.back();
+                    root_ = tmp_.back();
                     queue_.pop_back();
                 }
                 else {
@@ -189,7 +181,7 @@ using namespace json;
             } 
 
             bool Builder::CheckIfElementIsInsideOfArray(){
-                if (none_of(queue_.begin(), queue_.end(), [](auto mark){ return mark == Builder::Method::StartArray/* || mark == Builder::Method::EndArray*/; })){
+                if (none_of(queue_.begin(), queue_.end(), [](auto mark){ return mark == Builder::Method::StartArray; })){
                     return false;
                 }
                 int counter = 0;
@@ -207,7 +199,7 @@ using namespace json;
 
             BaseClass::BaseClass(Builder& builder) : builder_(builder){}
 
-            ValueItemContext KeyItemContext::Value(Node value){
+            StartDictItemContext KeyItemContext::Value(Node value){
                 return {builder_.Value(value)};
             }
             
@@ -229,11 +221,7 @@ using namespace json;
                 return builder_.StartArray();
             }
 
-            ValueItemContext1 StartArrayItemContext::Value(Node value){
-                return {builder_.Value(value)};
-            }
-
-            ValueItemContext1 ValueItemContext1::Value(Node value){
+            StartArrayItemContext StartArrayItemContext::Value(Node value){
                 return {builder_.Value(value)};
             }
 
