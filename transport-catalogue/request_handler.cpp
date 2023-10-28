@@ -5,12 +5,12 @@
 namespace transport_catalogue {
     namespace request_handler {
 
-RequestHandler::RequestHandler(TransportCatalogue& db, const renderer::MapRenderer& renderer) : tc_(db), renderer_(renderer) 
+RequestHandler::RequestHandler(TransportCatalogue& db, const renderer::MapRenderer& renderer, const router::TransportRouter& router) : tc_(db), renderer_(renderer), router_(router) 
 {
 }
 
 void RequestHandler::RespondToRequest(const json::Document& doc, std::ostream& out) const{
-    json_reader::RespondToRequest(doc, out, renderer_, tc_);
+    json_reader::RespondToRequest(doc, out, renderer_, tc_, router_);
 }
 
 void RequestHandler::FillDB(const json::Document& doc){

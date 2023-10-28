@@ -69,6 +69,16 @@ renderer::RenderingSettings GetRenderingSettings(const json::Document& document)
     return result;
 }
 
+router::RouterSettings GetRouterSettings(const json::Document& document){
+    json::Dict settings = document.GetRoot().AsMap().at("routing_settings").AsMap();
+    router::RouterSettings result;
+    double velocity = settings.at("bus_velocity").AsDouble();
+    double velocity_as_meter_per_min = velocity * VELOCITY_TO_METERS_PER_MIN;
+    result.bus_velocity = velocity_as_meter_per_min;
+    result.bus_wait_time = settings.at("bus_wait_time").AsInt();
+    return result;
+}
+
 void AddStops(const json::Array& queries_to_add, transport_catalogue::TransportCatalogue& tc){
     for (const auto& item : queries_to_add){
         const auto dict = item.AsMap();
@@ -170,7 +180,21 @@ json::Node GetStopOutput(const std::string& name, int id, const transport_catalo
     return json::Builder{}.Value(result).Build();
 }
 
-void RespondToRequest(const json::Document& doc, std::ostream& out, const renderer::MapRenderer& renderer_, const transport_catalogue::TransportCatalogue& tc_){
+json::Node GetRouteOutput(int id, std::string_view from, std::string_view to, const router::TransportRouter& router, const transport_catalogue::TransportCatalogue& tc_) {
+    json::Dict result;
+    result["request_id"] = json::Builder{}.Value(id).Build();
+    auto route = router.FindRoute(tc_.GetStopPointer(from), tc_.GetStopPointer(to)); 
+    if (!route.first.has_value()){
+        result["error_message"] = json::Builder{}.Value("not found").Build();
+    }
+    else {
+        result["total_time"] = json::Builder{}.Value(route.second).Build();
+        result["items"] = *route.first;
+    }
+    return json::Builder{}.Value(result).Build();
+}
+
+void RespondToRequest(const json::Document& doc, std::ostream& out, const renderer::MapRenderer& renderer_, const transport_catalogue::TransportCatalogue& tc_, const router::TransportRouter& router){
     json::Array queries_to_respond = doc.GetRoot().AsMap().at("stat_requests").AsArray();
     std::vector<json::Node> result;
     for (const auto& item : queries_to_respond){
@@ -183,6 +207,9 @@ void RespondToRequest(const json::Document& doc, std::ostream& out, const render
         }
         if (resp_map.at("type").AsString() == "Map"){
             result.push_back(json_reader::GetMapOutput(resp_map.at("id").AsInt(), renderer_, tc_));
+        }
+        if (resp_map.at("type").AsString() == "Route"){
+            result.push_back(json_reader::GetRouteOutput(resp_map.at("id").AsInt(), resp_map.at("from").AsString(), resp_map.at("to").AsString(),  router, tc_));
         }
     }
     json::Print(json::Document(json::Builder{}.Value(result).Build()), out);

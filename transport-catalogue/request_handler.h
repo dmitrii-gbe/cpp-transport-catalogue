@@ -8,6 +8,7 @@
 #include "json.h"
 #include "json_reader.h"
 #include "map_renderer.h"
+#include "transport_router.h"
 
 namespace transport_catalogue {
     namespace request_handler{
@@ -15,7 +16,7 @@ namespace transport_catalogue {
 class RequestHandler {
 public:
 
-    RequestHandler(TransportCatalogue& db, const renderer::MapRenderer& renderer);
+    RequestHandler(TransportCatalogue& db, const renderer::MapRenderer& renderer, const router::TransportRouter& router);
 
     void FillDB(const json::Document& doc);
     
@@ -27,6 +28,7 @@ private:
     
     TransportCatalogue& tc_;
     const renderer::MapRenderer& renderer_;
+    const router::TransportRouter& router_;
 };
     }
 }

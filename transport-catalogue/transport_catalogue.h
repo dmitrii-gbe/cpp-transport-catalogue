@@ -59,9 +59,13 @@ class TransportCatalogue {
 
     std::pair<double, double> CalculateRouteLength(const Bus* bus) const;
 
-    Stop* GetStopPointer(const std::string& stop_name) const;
+    //Stop* GetStopPointer(const std::string& stop_name) const;
+
+    Stop* GetStopPointer(std::string_view stop_name) const;
 
     const std::unordered_map<std::string_view, Bus*>& GetAllBuses() const;
+
+    size_t GetStopsNumber() const;
     
     private:    
         std::deque<Bus> buses_;
