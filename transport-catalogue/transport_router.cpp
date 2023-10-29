@@ -1,38 +1,44 @@
 #include "transport_router.h"
 
-namespace router {   
+namespace router {
+
+    VertexId TransportRouter::GetVertexIdByStop(transport_catalogue::Stop* stop_ptr) const {
+        return stop_to_vertexid_.at(stop_ptr);
+    }
+
+    transport_catalogue::Stop* TransportRouter::GetStopByVertexId(VertexId id) const {
+        return vertexid_to_stop_.at(id);
+    }
+
+    transport_catalogue::Bus* TransportRouter::GetBusByEdgeId(EdgeId id) const {
+        return edges_to_bus_.at(id);
+    }
+
+    const graph::Edge<double>& TransportRouter::GetEdgeByEdgeId(EdgeId id) const {
+        return graph_.GetEdge(id);
+    }
+
+    int TransportRouter::GetBusWaitTime() const {
+        return settings_.bus_wait_time;
+    }
    
    
-    std::pair<std::optional<json::Node>, double> TransportRouter::FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const {   
+    std::optional<graph::Router<double>::RouteInfo> TransportRouter::FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const {   
         json::Array result;
         if (stop_to_vertexid_.count(from) == 0 || stop_to_vertexid_.count(to) == 0){
-            return {std::nullopt, 0};
+            return std::nullopt;
         }
         std::optional<graph::Router<double>::RouteInfo> route = router_.BuildRoute(stop_to_vertexid_.at(from), stop_to_vertexid_.at(to)); //возвращает Weight и вектор граней
         if (!route.has_value()){
-            return {std::nullopt, 0};
+            return std::nullopt;
         }
         else {
-            double total_time = route.value().weight; //не забыть добавлять ожидание
-            std::string bus_name;
-            double bus_time = 0.0;            
-            for (const auto& edge_id : route.value().edges){
-                auto edge = graph_.GetEdge(edge_id);
-                auto stop_name = vertexid_to_stop_.at(edge.from)->name;
-                result.push_back(json::Builder{}.StartDict().Key("type").Value("Wait").Key("stop_name").Value(stop_name).Key("time").Value(settings_.bus_wait_time).EndDict().Build()); 
-                
-                bus_name = edges_to_bus_.at(edge_id)->name;
-                bus_time = edge.weight - settings_.bus_wait_time;
-                result.push_back(json::Builder{}.StartDict().Key("type").Value("Bus").Key("bus").Value(bus_name).Key("span_count").Value(edge.span_count).Key("time").Value(bus_time).EndDict().Build());                    
-            }
-            return {result, total_time};
+            return route;
         }
     }
-   
-    graph::DirectedWeightedGraph<double> TransportRouter::BuildGraph(){
-        graph::DirectedWeightedGraph<double> tmp(tc_.GetStopsNumber());
+
+    void TransportRouter::FillStopDictionaries(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses){
         size_t i = 0;
-        auto buses = tc_.GetAllBuses();
         for (const auto& bus : buses){
             const std::vector<transport_catalogue::Stop*>& stops = bus.second->stops;
             for (const auto& stop : stops){
@@ -42,7 +48,10 @@ namespace router {
                 }
             }
         }
-        for (const auto& bus : buses){
+    }
+
+    void TransportRouter::FillGraph(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses, graph::DirectedWeightedGraph<double>& tmp){
+         for (const auto& bus : buses){
             const std::vector<transport_catalogue::Stop*>& stops = bus.second->stops;
             if (!bus.second->is_circular){
                 for (size_t i = 0; i < stops.size(); ++i){
@@ -68,8 +77,16 @@ namespace router {
                 }
             }
         }
-       return tmp;
     }
+    
+   
+    graph::DirectedWeightedGraph<double> TransportRouter::BuildGraph(){
+        graph::DirectedWeightedGraph<double> tmp(tc_.GetStopsNumber());
+        auto buses = tc_.GetAllBuses();
+        FillStopDictionaries(buses);
+        FillGraph(buses, tmp);
+        return tmp;
+    }     
 
     double TransportRouter::CalculateDistanceBetweenStops(const std::vector<transport_catalogue::Stop*>& stops, size_t from, size_t to) const {
         double distance = 0.0;

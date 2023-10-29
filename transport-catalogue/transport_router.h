@@ -7,9 +7,6 @@
 
 #include <unordered_map>
 
-
-
-
 namespace router {
 
     using VertexId = size_t;
@@ -20,6 +17,7 @@ namespace router {
         int bus_wait_time = 0.0;
     };
 
+
 class TransportRouter {
     public:
     
@@ -27,10 +25,19 @@ class TransportRouter {
     {
     } 
 
-    std::pair<std::optional<json::Node>, double> FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const; 
+    std::optional<graph::Router<double>::RouteInfo> FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const;
 
+    VertexId GetVertexIdByStop(transport_catalogue::Stop* stop_ptr) const;
+    transport_catalogue::Stop* GetStopByVertexId(VertexId id) const;
+    transport_catalogue::Bus* GetBusByEdgeId(EdgeId id) const;
+    const graph::Edge<double>& GetEdgeByEdgeId(EdgeId id) const;
+    int GetBusWaitTime() const;
 
     private:
+
+    void FillStopDictionaries(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses);
+
+    void FillGraph(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses, graph::DirectedWeightedGraph<double>& tmp);
 
     graph::DirectedWeightedGraph<double> BuildGraph();
 
@@ -39,7 +46,7 @@ class TransportRouter {
     double CalculateDistanceBetweenStopsReversed(const std::vector<transport_catalogue::Stop*>& stops, size_t from, size_t to) const;
     
     std::unordered_map<transport_catalogue::Stop*, VertexId> stop_to_vertexid_;
-    std::unordered_map< VertexId, transport_catalogue::Stop*> vertexid_to_stop_;
+    std::unordered_map<VertexId, transport_catalogue::Stop*> vertexid_to_stop_;
     std::unordered_map<EdgeId, transport_catalogue::Bus*> edges_to_bus_;
     const transport_catalogue::TransportCatalogue& tc_;
     RouterSettings settings_;

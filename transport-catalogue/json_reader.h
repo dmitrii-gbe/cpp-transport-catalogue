@@ -16,6 +16,8 @@ json::Document GetQuery(std::istream& input);
 renderer::RenderingSettings GetRenderingSettings(const json::Document& document);
 
 router::RouterSettings GetRouterSettings(const json::Document& document);
+json::Node GetRouteOutput(int id, std::string_view from, std::string_view to, const router::TransportRouter& router, const transport_catalogue::TransportCatalogue& tc_);
+std::pair<json::Node, double> BuildRouteNode(const router::TransportRouter& router, const std::optional<graph::Router<double>::RouteInfo>& route);
 
 void GetColorSettings(renderer::RenderingSettings& result, const json::Dict& settings);
 

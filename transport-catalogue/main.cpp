@@ -4,6 +4,7 @@
 #include "map_renderer.h"
 #include "json_reader.h"
 #include "transport_router.h"
+
 #include <iostream>
 #include <iomanip>
 
@@ -26,7 +27,7 @@ int main() {
 
     transport_catalogue::request_handler::RequestHandler rh(tc, mp, router);
 
-    //rh.FillDB(queries);    
+    //rh.FillDB(queries);
     
     rh.RespondToRequest(queries, std::cout);
 
