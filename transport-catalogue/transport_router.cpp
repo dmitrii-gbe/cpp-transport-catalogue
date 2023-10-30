@@ -1,30 +1,8 @@
 #include "transport_router.h"
 
-namespace router {
-
-    VertexId TransportRouter::GetVertexIdByStop(transport_catalogue::Stop* stop_ptr) const {
-        return stop_to_vertexid_.at(stop_ptr);
-    }
-
-    transport_catalogue::Stop* TransportRouter::GetStopByVertexId(VertexId id) const {
-        return vertexid_to_stop_.at(id);
-    }
-
-    transport_catalogue::Bus* TransportRouter::GetBusByEdgeId(EdgeId id) const {
-        return edges_to_bus_.at(id);
-    }
-
-    const graph::Edge<double>& TransportRouter::GetEdgeByEdgeId(EdgeId id) const {
-        return graph_.GetEdge(id);
-    }
-
-    int TransportRouter::GetBusWaitTime() const {
-        return settings_.bus_wait_time;
-    }
+namespace router {   
    
-   
-    std::optional<graph::Router<double>::RouteInfo> TransportRouter::FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const {   
-        json::Array result;
+    std::optional<RouteSegments> TransportRouter::FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const {   
         if (stop_to_vertexid_.count(from) == 0 || stop_to_vertexid_.count(to) == 0){
             return std::nullopt;
         }
@@ -33,11 +11,22 @@ namespace router {
             return std::nullopt;
         }
         else {
-            return route;
+            RouteSegments result;
+            result.total_time = route.value().weight;
+            result.bus_wait_time = settings_.bus_wait_time;
+            for (const auto& edge_id : route.value().edges){
+                auto edge = graph_.GetEdge(edge_id);
+                result.segments.push_back({vertexid_to_stop_.at(edge.from),
+                                            vertexid_to_stop_.at(edge.to),
+                                            edges_to_bus_.at(edge_id),
+                                            edge.weight,
+                                            edge.span_count});
+            }
+        return result;
         }
     }
 
-    void TransportRouter::FillStopDictionaries(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses){
+    void TransportRouter::FillGraph(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses, graph::DirectedWeightedGraph<double>& tmp){
         size_t i = 0;
         for (const auto& bus : buses){
             const std::vector<transport_catalogue::Stop*>& stops = bus.second->stops;
@@ -48,9 +37,7 @@ namespace router {
                 }
             }
         }
-    }
 
-    void TransportRouter::FillGraph(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses, graph::DirectedWeightedGraph<double>& tmp){
          for (const auto& bus : buses){
             const std::vector<transport_catalogue::Stop*>& stops = bus.second->stops;
             if (!bus.second->is_circular){
@@ -83,7 +70,6 @@ namespace router {
     graph::DirectedWeightedGraph<double> TransportRouter::BuildGraph(){
         graph::DirectedWeightedGraph<double> tmp(tc_.GetStopsNumber());
         auto buses = tc_.GetAllBuses();
-        FillStopDictionaries(buses);
         FillGraph(buses, tmp);
         return tmp;
     }     

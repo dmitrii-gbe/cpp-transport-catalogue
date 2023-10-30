@@ -188,35 +188,33 @@ json::Node GetRouteOutput(int id, std::string_view from, std::string_view to, co
         result["error_message"] = json::Builder{}.Value("not found").Build();
     }
     else {
-        std::pair<json::Node, double> route_node = BuildRouteNode(router, route);
+        std::pair<json::Node, double> route_node = BuildRouteNode(route);
         result["total_time"] = json::Builder{}.Value(route_node.second).Build();
         result["items"] = std::move(route_node.first);
     }
     return json::Builder{}.Value(result).Build();
 }
 
-std::pair<json::Node, double> BuildRouteNode(const router::TransportRouter& router, const std::optional<graph::Router<double>::RouteInfo>& route){
+std::pair<json::Node, double> BuildRouteNode(const std::optional<router::RouteSegments>& route){
     json::Array result;
-    int bus_wait_time = router.GetBusWaitTime();
-    double total_time = route.value().weight; //не забыть добавлять ожидание
+    double total_time = route.value().total_time;
     std::string bus_name;
     double bus_time = 0.0;            
-    for (const auto& edge_id : route.value().edges){
-        auto edge = router.GetEdgeByEdgeId(edge_id);
-        auto stop_name = router.GetStopByVertexId(edge.from)->name;
+    for (const auto& segment : route.value().segments){
+        auto stop_name = segment.from->name;
         result.push_back(json::Builder{}.StartDict()
                                         .Key("type").Value("Wait")
                                         .Key("stop_name").Value(std::move(stop_name))
-                                        .Key("time").Value(bus_wait_time)
+                                        .Key("time").Value(route.value().bus_wait_time)
                                         .EndDict()
                                         .Build()); 
         
-        bus_name = router.GetBusByEdgeId(edge_id)->name;
-        bus_time = edge.weight - bus_wait_time;
+        bus_name = segment.bus->name;
+        bus_time = segment.time - route.value().bus_wait_time;
         result.push_back(json::Builder{}.StartDict()
                                         .Key("type").Value("Bus")
                                         .Key("bus").Value(std::move(bus_name))
-                                        .Key("span_count").Value(edge.span_count)
+                                        .Key("span_count").Value(segment.span_count)
                                         .Key("time").Value(bus_time)
                                         .EndDict()
                                         .Build());                    

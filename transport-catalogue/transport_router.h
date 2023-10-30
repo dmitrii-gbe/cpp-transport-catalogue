@@ -17,6 +17,29 @@ namespace router {
         int bus_wait_time = 0.0;
     };
 
+    struct Segment {
+        transport_catalogue::Stop* from;
+        transport_catalogue::Stop* to;
+        transport_catalogue::Bus* bus;
+        double time = 0.0;
+        int span_count = 0;
+    };
+
+   
+   
+    // VertexId GetVertexIdByStop(transport_catalogue::Stop* stop_ptr) const; Исправил, теперь эти методы не нужны.
+    // transport_catalogue::Stop* GetStopByVertexId(VertexId id) const; 
+    // transport_catalogue::Bus* GetBusByEdgeId(EdgeId id) const; 
+    // const graph::Edge<double>& GetEdgeByEdgeId(EdgeId id) const; 
+    // int GetBusWaitTime() const; 
+    
+   
+    struct RouteSegments {
+        std::vector<Segment> segments;
+        double total_time = 0.0;
+        double bus_wait_time = 0.0;
+    };
+
 
 class TransportRouter {
     public:
@@ -25,17 +48,9 @@ class TransportRouter {
     {
     } 
 
-    std::optional<graph::Router<double>::RouteInfo> FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const;
-
-    VertexId GetVertexIdByStop(transport_catalogue::Stop* stop_ptr) const;
-    transport_catalogue::Stop* GetStopByVertexId(VertexId id) const;
-    transport_catalogue::Bus* GetBusByEdgeId(EdgeId id) const;
-    const graph::Edge<double>& GetEdgeByEdgeId(EdgeId id) const;
-    int GetBusWaitTime() const;
+    std::optional<RouteSegments> FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const;
 
     private:
-
-    void FillStopDictionaries(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses);
 
     void FillGraph(const std::unordered_map<std::string_view, transport_catalogue::Bus*> buses, graph::DirectedWeightedGraph<double>& tmp);
 
