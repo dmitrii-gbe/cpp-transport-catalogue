@@ -1,5 +1,8 @@
 #include "json.h"
 #include <algorithm>
+#include <cstdio>
+#include <string>
+#include <limits>
 
 
 
@@ -39,11 +42,10 @@ Node LoadDict(std::istream& input) {
     char t;
     if (input >> t){
         input.putback(t);
-    } else {
+    } else if (input.eof()){
         throw ParsingError("Invalid_token"s);
     }
-
-    for (char c; input >> c && c != '}';) {
+    for (char c; input >> c && c != '}' && c != EOF && c!='\0';) {
         if (c == ',') {
             input >> c;
         }
@@ -52,7 +54,6 @@ Node LoadDict(std::istream& input) {
         input >> c;
         result.insert({move(key), LoadNode(input)});
     }
-
     return Node{move(result)};
 }
 
@@ -383,7 +384,7 @@ void PrintValue(const std::string& s, std::ostream& out) {
 void PrintValue(const Array& array, std::ostream& out){
     bool is_first = true;
     out << '[';
-    for (const auto value : array){
+    for (const auto& value : array){
         if (is_first){
            PrintNode(value, out);
            is_first = false;
@@ -399,7 +400,7 @@ void PrintValue(const Array& array, std::ostream& out){
 void PrintValue(const Dict& dict, std::ostream& out){
     bool is_first = true;
     out << '{';
-    for (const auto [key, value] : dict){
+    for (const auto& [key, value] : dict){
         if (is_first){
         out << '\"' << key << '\"' << ':';
            PrintNode(value, out);

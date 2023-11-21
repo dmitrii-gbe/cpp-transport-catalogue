@@ -1,13 +1,36 @@
 #pragma once
 
-/*
- * В этом файле вы можете разместить классы/структуры, которые являются частью предметной области (domain)
- * вашего приложения и не зависят от транспортного справочника. Например Автобусные маршруты и Остановки. 
- *
- * Их можно было бы разместить и в transport_catalogue.h, однако вынесение их в отдельный
- * заголовочный файл может оказаться полезным, когда дело дойдёт до визуализации карты маршрутов:
- * визуализатор карты (map_renderer) можно будет сделать независящим от транспортного справочника.
- *
- * Если структура вашего приложения не позволяет так сделать, просто оставьте этот файл пустым.
- *
- */
+#include <iostream>
+#include <vector>
+#include <string>
+
+#include "transport_catalogue.h"
+#include "geo.h"
+
+namespace transport_catalogue {
+    namespace detail {
+        const std::string GetFlag(const std::string& s);
+    }
+    namespace input_reader {        
+std::vector<std::string> ReadQuery();
+
+const std::vector<std::pair<std::string, int>> ParseDistances(const std::string& s, size_t position);
+
+std::tuple<Stop, size_t> ParseStop(const std::string& s, const size_t name_position);
+
+const Bus ParseBus(std::string&& s, const TransportCatalogue& tc);
+
+void ParseQueryToAdd(TransportCatalogue& tc, std::vector<std::string>&& query);
+    }
+}
+
+namespace transport_catalogue {
+    namespace response_output {
+        
+void ParseQueryToRespond(const TransportCatalogue& tc, std::vector<std::string>&& query);
+
+void BusOutput(const std::string& name, const TransportCatalogue& tc, std::ostream& out);
+
+void StopOutput(const std::string& name, const TransportCatalogue& tc, std::ostream& out);
+    }
+}

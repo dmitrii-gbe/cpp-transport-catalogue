@@ -4,32 +4,43 @@
 #include "map_renderer.h"
 #include "json_reader.h"
 #include "transport_router.h"
+#include "serialization.h"
 
 #include <iostream>
 #include <iomanip>
+#include <istream>
+#include <ostream>
+#include <fstream>
+#include <sstream>
 
+using namespace std::literals;
 
-int main() {
+void PrintUsage(std::ostream& stream = std::cerr) {
+    stream << "Usage: transport_catalogue [make_base|process_requests]\n"sv;
+}
 
-    json::Document queries = json_reader::GetQuery(std::cin);
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        PrintUsage();
+        return 1;
+    }
 
-    renderer::RenderingSettings settings = json_reader::GetRenderingSettings(queries);
-
-    renderer::MapRenderer mp(settings);
-  
-    transport_catalogue::TransportCatalogue tc;
-
-    json_reader::FillDB(queries, tc);
-
-    router::RouterSettings router_settings = json_reader::GetRouterSettings(queries);
-
-    router::TransportRouter router(tc, router_settings);
-
-    transport_catalogue::request_handler::RequestHandler rh(tc, mp, router);
-
-    //rh.FillDB(queries);
+    const std::string_view mode(argv[1]);
     
-    rh.RespondToRequest(queries, std::cout);
+    if (mode == "make_base"sv) {
 
-    return 0;    
+        json::Document queries = json_reader::GetQuery(std::cin);
+
+        myproto::MakeBase(queries);
+
+    } else if (mode == "process_requests"sv) {
+
+        json::Document request_queries = json_reader::GetQuery(std::cin);
+
+        myproto::ProcessRequests(request_queries.GetRoot().AsMap().at("serialization_settings").AsMap().at("file").AsString(), request_queries);
+
+    } else {
+        PrintUsage();
+        return 1;
+    }
 }

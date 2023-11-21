@@ -20,7 +20,15 @@ private:
     using Graph = DirectedWeightedGraph<Weight>;
 
 public:
+    struct RouteInternalData {
+        Weight weight;
+        std::optional<EdgeId> prev_edge;
+    };
+    using RoutesInternalData = std::vector<std::vector<std::optional<RouteInternalData>>>;
     explicit Router(const Graph& graph);
+    explicit Router(const Graph& graph, RoutesInternalData&& int_data) : graph_(graph), routes_internal_data_(int_data)
+    {
+    }
 
     struct RouteInfo {
         Weight weight;
@@ -29,12 +37,17 @@ public:
 
     std::optional<RouteInfo> BuildRoute(VertexId from, VertexId to) const;
 
+    const RoutesInternalData& GetRoutesInternalData() const {
+        return routes_internal_data_;
+    }
+
+
 private:
-    struct RouteInternalData {
-        Weight weight;
-        std::optional<EdgeId> prev_edge;
-    };
-    using RoutesInternalData = std::vector<std::vector<std::optional<RouteInternalData>>>;
+    // struct RouteInternalData {
+    //     Weight weight;
+    //     std::optional<EdgeId> prev_edge;
+    // };
+    //using RoutesInternalData = std::vector<std::vector<std::optional<RouteInternalData>>>;
 
     void InitializeRoutesInternalData(const Graph& graph) {
         const size_t vertex_count = graph.GetVertexCount();

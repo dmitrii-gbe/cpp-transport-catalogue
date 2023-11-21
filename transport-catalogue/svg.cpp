@@ -186,7 +186,7 @@ void Polyline::RenderObject(const RenderContext& context) const {
         for (const auto& item : storage_){
             item->Render(context);
         }
-        out << "</svg>" << std::endl;
+        out << "</svg>" /*<< std::endl*/;
     }
 
     std::ostream& operator<<(std::ostream& out, Rgb rgb){

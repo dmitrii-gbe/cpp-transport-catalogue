@@ -11,12 +11,14 @@ namespace json_reader {
 
 const double VELOCITY_TO_METERS_PER_MIN = 1000.0 / 60.0;
 
+std::istringstream ReadStream();
+
 json::Document GetQuery(std::istream& input);
 
 renderer::RenderingSettings GetRenderingSettings(const json::Document& document);
 
 router::RouterSettings GetRouterSettings(const json::Document& document);
-json::Node GetRouteOutput(int id, std::string_view from, std::string_view to, const router::TransportRouter& router, const transport_catalogue::TransportCatalogue& tc_);
+json::Node GetRouteOutput(int id, const std::string& from, const std::string& to, const router::TransportRouter& router, const transport_catalogue::TransportCatalogue& tc_);
 std::pair<json::Node, double> BuildRouteNode(const std::optional<router::RouteSegments>& route);
 
 void GetColorSettings(renderer::RenderingSettings& result, const json::Dict& settings);

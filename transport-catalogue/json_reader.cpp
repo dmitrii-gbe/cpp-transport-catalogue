@@ -180,10 +180,10 @@ json::Node GetStopOutput(const std::string& name, int id, const transport_catalo
     return json::Builder{}.Value(result).Build();
 }
 
-json::Node GetRouteOutput(int id, std::string_view from, std::string_view to, const router::TransportRouter& router, const transport_catalogue::TransportCatalogue& tc_) {
+json::Node GetRouteOutput(int id, const std::string& from, const std::string& to, const router::TransportRouter& router, const transport_catalogue::TransportCatalogue& tc_) {
     json::Dict result;
     result["request_id"] = json::Builder{}.Value(id).Build();
-    auto route = router.FindRoute(tc_.GetStopPointer(from), tc_.GetStopPointer(to));
+    auto route = router.FindRoute(from, to);
     if (!route.has_value()){
         result["error_message"] = json::Builder{}.Value("not found").Build();
     }

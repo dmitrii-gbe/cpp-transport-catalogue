@@ -2,7 +2,7 @@
 
 namespace router {   
    
-    std::optional<RouteSegments> TransportRouter::FindRoute(transport_catalogue::Stop* from, transport_catalogue::Stop* to) const {   
+    std::optional<RouteSegments> TransportRouter::FindRoute(const std::string& from, const std::string& to) const {   
         if (stop_to_vertexid_.count(from) == 0 || stop_to_vertexid_.count(to) == 0){
             return std::nullopt;
         }
@@ -16,11 +16,11 @@ namespace router {
             result.bus_wait_time = settings_.bus_wait_time;
             for (const auto& edge_id : route.value().edges){
                 auto edge = graph_.GetEdge(edge_id);
-                result.segments.push_back({vertexid_to_stop_.at(edge.from),
-                                            vertexid_to_stop_.at(edge.to),
-                                            edges_to_bus_.at(edge_id),
-                                            edge.weight,
-                                            edge.span_count});
+                result.segments.push_back({tc_.GetStopPointer(vertexid_to_stop_.at(edge.from)),
+                                           tc_.GetStopPointer(vertexid_to_stop_.at(edge.to)),
+                                           tc_.FindBus(edges_to_bus_.at(edge_id)),
+                                           edge.weight,
+                                           edge.span_count});
             }
         return result;
         }
@@ -31,9 +31,9 @@ namespace router {
         for (const auto& bus : buses){
             const std::vector<transport_catalogue::Stop*>& stops = bus.second->stops;
             for (const auto& stop : stops){
-                if (stop_to_vertexid_.count(stop) == 0){
-                    vertexid_to_stop_[i] = stop;
-                    stop_to_vertexid_[stop] = i++;
+                if (stop_to_vertexid_.count(stop->name) == 0){
+                    vertexid_to_stop_[i] = stop->name;
+                    stop_to_vertexid_[stop->name] = i++;
                 }
             }
         }
@@ -45,11 +45,11 @@ namespace router {
                     for (size_t j = i + 1; j < stops.size(); ++j){
                         int span_count = j - i;
                         double time = (CalculateDistanceBetweenStops(stops, i, j) / settings_.bus_velocity) + settings_.bus_wait_time;
-                        EdgeId id = tmp.AddEdge({stop_to_vertexid_.at(stops[i]), stop_to_vertexid_.at(stops[j]), time, span_count});
-                        edges_to_bus_[id] = bus.second;
+                        EdgeId id = tmp.AddEdge({stop_to_vertexid_.at(stops[i]->name), stop_to_vertexid_.at(stops[j]->name), time, span_count});
+                        edges_to_bus_[id] = bus.second->name;
                         double time_reversed = (CalculateDistanceBetweenStopsReversed(stops, j, i) / settings_.bus_velocity) + settings_.bus_wait_time;
-                        EdgeId id_reversed = tmp.AddEdge({stop_to_vertexid_.at(stops[j]), stop_to_vertexid_.at(stops[i]), time_reversed, span_count});
-                        edges_to_bus_[id_reversed] = bus.second;
+                        EdgeId id_reversed = tmp.AddEdge({stop_to_vertexid_.at(stops[j]->name), stop_to_vertexid_.at(stops[i]->name), time_reversed, span_count});
+                        edges_to_bus_[id_reversed] = bus.second->name;
                     }
                 }            
             }
@@ -58,8 +58,8 @@ namespace router {
                     for (size_t j = i + 1; j < stops.size(); ++j){
                         int span_count = j - i;
                         double time = (CalculateDistanceBetweenStops(stops, i, j) / settings_.bus_velocity) + settings_.bus_wait_time;
-                        EdgeId id = tmp.AddEdge({stop_to_vertexid_.at(stops[i]), stop_to_vertexid_.at(stops[j]), time, span_count});
-                        edges_to_bus_[id] = bus.second;
+                        EdgeId id = tmp.AddEdge({stop_to_vertexid_.at(stops[i]->name), stop_to_vertexid_.at(stops[j]->name), time, span_count});
+                        edges_to_bus_[id] = bus.second->name;
                     }
                 }
             }
@@ -112,6 +112,26 @@ namespace router {
         }
         return distance;
     }
+
+    const std::unordered_map<std::string, VertexId>& TransportRouter::GetStopToVertexId() const {
+        return stop_to_vertexid_;
+    }
+
+    const std::unordered_map<VertexId, std::string>& TransportRouter::GetVertexIdToStop() const {
+        return vertexid_to_stop_;
+    }
+
+    const std::unordered_map<EdgeId, std::string>& TransportRouter::GetEdgesToBus() const {
+        return edges_to_bus_;
+    }
+
+    const graph::DirectedWeightedGraph<double>& TransportRouter::GetGraph() const {
+        return graph_;
+    }
+
+    const graph::Router<double>& TransportRouter::GetRouter() const {
+             return router_;
+        }
 
 
     }

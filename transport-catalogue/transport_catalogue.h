@@ -7,6 +7,7 @@
 #include <set>
 #include <vector>
 #include <string_view>
+#include <optional>
 
 #include "geo.h"
 
@@ -45,11 +46,6 @@ class TransportCatalogue {
     void AddStop(const Stop& stop);
 
     const Bus* FindBus(const std::string& name) const;
-    /*
-    Вариант с константным указателем на Bus выдаёт ошибку компиляции в тренажёре "error: type qualifiers ignored on function return type [-Werror=ignored-qualifiers]"
-    Проблема, по-видимому, во флаге -pedantic, хотя g++ на Windows с параметрами -Wall -Werror -pedantic компилирует без проблем.
-    Тренажёр позволяет сделать константным только само значение
-    */
 
     std::optional<const std::set<std::string_view>> GetBusesForStop(const std::string& stop) const;
 
