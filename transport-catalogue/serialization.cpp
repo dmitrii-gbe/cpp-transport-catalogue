@@ -37,8 +37,8 @@ namespace myproto {
 
     router::RouterSettings SetRouterSettings(const proto::TransportCatalogue& catalogue){
         router::RouterSettings result;
-        result.bus_velocity = catalogue.bus_velocity();
-        result.bus_wait_time = catalogue.bus_wait_time();
+        result.bus_velocity = catalogue.router_data().bus_velocity();
+        result.bus_wait_time = catalogue.router_data().bus_wait_time();
         return result;
     }
 
@@ -59,10 +59,28 @@ namespace myproto {
         return rgba;
     }
 
+    proto::Color_palette CreateProtoColorPalette(const json::Node& color){
+        proto::Color_palette result;
+        if (color.IsArray()){
+            json::Array ar = color.AsArray();
+            if (ar.size() == 3){
+                *result.mutable_rgb() = CreateProtoRGB(ar);
+            }
+            if (ar.size() == 4){
+                *result.mutable_rgba() = CreateProtoRGBA(ar);
+            }
+        }
+        else {
+            std::string color_name = color.AsString();
+            result.set_color_name(color_name);
+        }
+        return result;
+    }
+
     proto::TransportCatalogue SerializeTransportCatalogue(const transport_catalogue::TransportCatalogue& tc, const json::Document& queries){
         proto::TransportCatalogue catalogue;
         for (const auto& bus : tc.GetAllBuses()){
-            proto::Bus* proto_bus = catalogue.add_buses_();
+            proto::Bus* proto_bus = catalogue.mutable_buses_and_stops()->add_buses_();
             proto_bus->set_name(std::string(bus.first));
             proto_bus->set_is_roundtrip(bus.second->is_circular);
             for (const auto& stop_ptr : bus.second->stops){
@@ -74,7 +92,7 @@ namespace myproto {
         }
         for (const auto& stop : queries.GetRoot().AsMap().at("base_requests").AsArray()){
             if (stop.AsMap().at("type").AsString() == "Stop"){
-                auto s = catalogue.add_stops_();
+                auto s = catalogue.mutable_buses_and_stops()->add_stops_();
                 s->set_latitude(stop.AsMap().at("latitude").AsDouble());
                 s->set_longitude(stop.AsMap().at("longitude").AsDouble());
                 s->set_name(stop.AsMap().at("name").AsString());
@@ -85,7 +103,7 @@ namespace myproto {
             json::Dict base_request = stop.AsMap();
             if (base_request.at("type").AsString() == "Stop"){
                 for (const auto& dist : base_request.at("road_distances").AsMap()){
-                    proto::Dist* d = catalogue.add_distanses();
+                    proto::Dist* d = catalogue.mutable_buses_and_stops()->add_distanses();
                     d->set_departure(stop.AsMap().at("name").AsString());
                     d->set_destination(dist.first);
                     d->set_distance(dist.second.AsDouble());
@@ -111,40 +129,14 @@ namespace myproto {
         for (const auto& stop_offset : render_settings.at("stop_label_offset").AsArray()){
             render.add_stop_label_offset(stop_offset.AsDouble());
         }
-        proto::Color_palette underlayer_color;
-        if (render_settings.at("underlayer_color").IsArray()){
-            json::Array ar = render_settings.at("underlayer_color").AsArray();
-            if (ar.size() == 3){
-                *underlayer_color.mutable_rgb() = CreateProtoRGB(ar);
-            }
-            if (ar.size() == 4){
-                *underlayer_color.mutable_rgba() = CreateProtoRGBA(ar);
-            }
-        }
-        else {
-            std::string color_name = render_settings.at("underlayer_color").AsString();
-            underlayer_color.set_color_name(color_name);
-        }
+
+        proto::Color_palette underlayer_color = CreateProtoColorPalette(render_settings.at("underlayer_color"));
+        *render.mutable_underlayer_color() = underlayer_color;
+
         for (const auto& color : render_settings.at("color_palette").AsArray()){
-
-            proto::Color_palette p;
-            if (color.IsString()){
-                p.set_color_name(color.AsString());
-            }
-            else {
-                json::Array ar = color.AsArray();
-                if (ar.size() == 3){
-                    *p.mutable_rgb() = CreateProtoRGB(ar);
-                }
-                if (ar.size() == 4){
-                    *p.mutable_rgba() = CreateProtoRGBA(ar);
-                }
-
-            }
+            proto::Color_palette p = CreateProtoColorPalette(color);
             *render.add_color_palette() = p;
         }
-
-        *render.mutable_underlayer_color() = underlayer_color;
         return render;
     }
 
@@ -166,13 +158,13 @@ namespace myproto {
         auto proto_edges = proto_graph->mutable_edges();
         *proto_edges = CreateProtoEdges(edges);
         
-        auto proto_router_ptr = catalogue.mutable_router();
+        auto proto_router_ptr = catalogue.mutable_router_data()->mutable_router();
         *proto_router_ptr = proto_router;
 
         auto int_data = router.GetRouter().GetRoutesInternalData();
 
         for (const auto& item_top : int_data){
-            proto::RoutesInternalData* proto_int_data_item = catalogue.add_routes_internal_data();
+            proto::RoutesInternalData* proto_int_data_item = catalogue.mutable_router_data()->add_routes_internal_data();
             for (const auto& item_bottom : item_top){
                 auto proto_int_data_ptr = proto_int_data_item->add_routes_internal_data_first(); 
                 auto proto_int_data_ptr_ptr = proto_int_data_ptr->mutable_optional_route_internal_data();
@@ -190,33 +182,10 @@ namespace myproto {
                 }
             }
         }
-}
-
-    void MakeBase(json::Document queries){
-        
-        transport_catalogue::TransportCatalogue tc;
-        json_reader::FillDB(queries, tc);
-        router::RouterSettings router_settings = json_reader::GetRouterSettings(queries);
-        router::TransportRouter router(tc, router_settings);
-        
-        proto::TransportCatalogue catalogue = SerializeTransportCatalogue(tc, queries);
-
-        auto render_settings = queries.GetRoot().AsMap().at("render_settings").AsMap();
-
-        *catalogue.mutable_render_settings() = SerializeoRenderingSettings(render_settings);
-
-        catalogue.set_bus_velocity(queries.GetRoot().AsMap().at("routing_settings").AsMap().at("bus_velocity").AsDouble() * json_reader::VELOCITY_TO_METERS_PER_MIN);
-        catalogue.set_bus_wait_time(queries.GetRoot().AsMap().at("routing_settings").AsMap().at("bus_wait_time").AsDouble());
-
-        SetProtoRouter(router, catalogue);        
-        
-        std::ofstream out(queries.GetRoot().AsMap().at("serialization_settings").AsMap().at("file").AsString(), std::ios_base::binary);
-        catalogue.SerializeToOstream(&out);
-        out.close();
     }
 
     router::TransportRouter DeserializeTransportRouter(const proto::TransportCatalogue& catalogue, const transport_catalogue::TransportCatalogue& tc){
-        proto::Router proto_router = catalogue.router();
+        proto::Router proto_router = catalogue.router_data().router();
         auto proto_stop_to_vertex_id = proto_router.stop_to_vertexid();
         auto proto_vertex_id_to_stop = proto_router.vertexid_to_stop();
         auto proto_edge_to_bus = proto_router.edge_to_bus();
@@ -236,7 +205,7 @@ namespace myproto {
             edges.push_back(edge);
         }
 
-        auto proto_routes_int_data = catalogue.routes_internal_data();
+        auto proto_routes_int_data = catalogue.router_data().routes_internal_data();
 
         graph::Router<double>::RoutesInternalData internal_data;
         for (const auto& item_top : proto_routes_int_data){
@@ -269,8 +238,8 @@ namespace myproto {
                                      , std::move(internal_data));
     }
 
-    void SetTransportCatalogue(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc){
-        for (const auto& stop: catalogue.stops_()){
+    void DeserializeStops(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc){
+        for (const auto& stop : catalogue.buses_and_stops().stops_()){
             geo::Coordinates c;
             c.lng = stop.longitude();
             c.lat = stop.latitude();
@@ -278,10 +247,16 @@ namespace myproto {
             transport_catalogue::Stop s(name, c);
             tc.AddStop(s);
         }
-        for (const auto& dist : catalogue.distanses()){
+    }
+
+    void DeserializeDistances(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc){
+        for (const auto& dist : catalogue.buses_and_stops().distanses()){
             tc.SetDistance(dist.destination(), dist.departure(), dist.distance());
         }
-        for (const auto& bus : catalogue.buses_()){
+    }
+
+    void DeserializeBuses(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc){
+        for (const auto& bus : catalogue.buses_and_stops().buses_()){
             std::vector<transport_catalogue::Stop*> stops;
             for(const auto& stop: bus.stops()){
                 std::string name = stop.name();
@@ -292,6 +267,12 @@ namespace myproto {
             transport_catalogue::Bus b(name, stops, bus.is_roundtrip());
             tc.AddBus(b);
         }    
+    }
+
+    void SetTransportCatalogue(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc){
+         DeserializeStops(catalogue, tc);
+         DeserializeDistances(catalogue, tc);
+         DeserializeBuses(catalogue, tc);
     }
 
     renderer::MapRenderer DeserializeMapRender(const proto::TransportCatalogue& catalogue){
@@ -341,6 +322,29 @@ namespace myproto {
             buffer.underlayer_color = rgb_color;
         }
         return renderer::MapRenderer(buffer);
+    }
+
+    void MakeBase(json::Document queries){
+        
+        transport_catalogue::TransportCatalogue tc;
+        json_reader::FillDB(queries, tc);
+        router::RouterSettings router_settings = json_reader::GetRouterSettings(queries);
+        router::TransportRouter router(tc, router_settings);
+        
+        proto::TransportCatalogue catalogue = SerializeTransportCatalogue(tc, queries);
+
+        auto render_settings = queries.GetRoot().AsMap().at("render_settings").AsMap();
+
+        *catalogue.mutable_render_settings() = SerializeoRenderingSettings(render_settings);
+
+        catalogue.mutable_router_data()->set_bus_velocity(queries.GetRoot().AsMap().at("routing_settings").AsMap().at("bus_velocity").AsDouble() * json_reader::VELOCITY_TO_METERS_PER_MIN);
+        catalogue.mutable_router_data()->set_bus_wait_time(queries.GetRoot().AsMap().at("routing_settings").AsMap().at("bus_wait_time").AsDouble());
+
+        SetProtoRouter(router, catalogue);        
+        
+        std::ofstream out(queries.GetRoot().AsMap().at("serialization_settings").AsMap().at("file").AsString(), std::ios_base::binary);
+        catalogue.SerializeToOstream(&out);
+        out.close();
     }
 
     void ProcessRequests(const std::string& db, const json::Document& doc){        

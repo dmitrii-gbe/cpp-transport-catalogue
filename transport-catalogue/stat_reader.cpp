@@ -43,7 +43,7 @@ void StopOutput(const std::string& name, const TransportCatalogue& tc, std::ostr
 }
 
 void ParseQueryToRespond(const TransportCatalogue& tc, std::vector<std::string>&& query){
-    for (const auto s : query){
+    for (const auto& s : query){
         size_t position = s.find_first_of(" ", 0);
         std::string flag = s.substr(0, position);
         std::string name = s.substr(++position);

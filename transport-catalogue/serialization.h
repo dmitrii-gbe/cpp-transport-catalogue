@@ -33,4 +33,12 @@ namespace myproto {
 
     renderer::MapRenderer DeserializeMapRender(const proto::TransportCatalogue& catalogue);
 
+    proto::Color_palette CreateProtoColorPalette(const json::Node& color);
+
+    void DeserializeStops(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc);
+    
+    void DeserializeDistances(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc);
+    
+    void DeserializeBuses(const proto::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& tc);
+
 } // namespace proto end
