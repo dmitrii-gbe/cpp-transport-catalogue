@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package proto;
+
+import "graph.proto";
+
+message Router {
+    map<string, uint64> stop_to_vertexid = 1;
+    map<uint64, string> vertexid_to_stop = 2;
+    map<uint64, string> edge_to_bus = 3;
+    Graph graph = 4;
+}
+
+message RouteInternalData {
+    double weight = 1;
+    oneof prev_edge_ { uint64 prev_edge = 2; };
+
+}
+
+message OptionalRouteInternalData {
+    oneof optional_route_internal_data_ { RouteInternalData optional_route_internal_data = 1; };
+}
+
+message RoutesInternalData {
+    repeated OptionalRouteInternalData routes_internal_data_first = 1; 
+}
+

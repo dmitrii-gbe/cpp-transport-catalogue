@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package proto;
 
+import "map_renderer.proto";
+import "transport_router.proto";
+
 message Bus {
     bool is_roundtrip = 1;
     string name = 2;
@@ -21,89 +24,23 @@ message Dist {
     double distance = 3;
 };
 
-message RGB {
-    int32 r = 1;
-    int32 g = 2;
-    int32 b = 3;
+
+message BusesAndStops {
+    repeated Bus buses_ = 1;
+    repeated Stop stops_ = 2;
+    repeated Dist distanses = 3;
 }
 
-message RGBA {
-    int32 r = 1;
-    int32 g = 2;
-    int32 b = 3;
-    double opacity = 4;
-}
-
-message Color_palette {
-    oneof color {
-        RGBA rgba = 1;
-        string color_name = 2;
-        RGB rgb = 3;
-    }
-}
-
-message RenderSettings {
-    double width = 1;
-    double height = 2;
-    double padding = 3;
-    double line_width = 4;
-    double stop_radius = 5;
-    int32 bus_label_font_size = 6;
-    double underlayer_width = 7;
-    repeated double bus_label_offset = 8;
-    repeated Color_palette color_palette = 9;
-    int32 stop_label_font_size = 10;
-    repeated double stop_label_offset = 11;
-    Color_palette underlayer_color = 12;
-
-}
-
-message Edge {
-    uint64 from = 1;
-    uint64 to = 2;
-    double weight = 3;
-    int32 span_count = 4;
-}
-
-message IncidenceList {
-    repeated uint64 edge_id = 1;
-}
-
-message Graph {
-    repeated Edge edges = 1;
-    repeated IncidenceList incidence_lists = 2;
-}
-
-
-message Router {
-    map<string, uint64> stop_to_vertexid = 1;
-    map<uint64, string> vertexid_to_stop = 2;
-    map<uint64, string> edge_to_bus = 3;
-    Graph graph = 4;
-}
-
-message RouteInternalData {
-    double weight = 1;
-    oneof prev_edge_ { uint64 prev_edge = 2; };
-
-}
-
-message OptionalRouteInternalData {
-    oneof optional_route_internal_data_ { RouteInternalData optional_route_internal_data = 1; };
-}
-
-message RoutesInternalData {
-    repeated OptionalRouteInternalData routes_internal_data_first = 1; 
+message RouterData {
+    Router router = 1;
+    repeated RoutesInternalData routes_internal_data = 2;
+    double bus_velocity = 3;
+    double bus_wait_time = 4;
 }
 
 message TransportCatalogue {
-    repeated Bus buses_ = 2;
-    repeated Stop stops_ = 3;
-    repeated Dist distanses = 4;
-    double bus_velocity = 5;
-    double bus_wait_time = 6;
-    RenderSettings render_settings = 7;
-    Router router = 8;
-    repeated RoutesInternalData routes_internal_data = 9;
+    BusesAndStops buses_and_stops = 1;
+    RenderSettings render_settings = 2;
+    RouterData router_data = 3;
 };
 
